@@ -14,8 +14,7 @@ Examples are provided in the [examples](src/examples/) directory to see how to u
 
 Below is a screenshot from the example for multivariate optimization, finding the minimum of an elliptoid surface (the true minimum is `(X=3, Y=-5)`):
 
-<img width="372" height="197" alt="image" src="https://github.com/user-attachments/assets/51c9771e-4884-41de-bdd8-924ec7f0b754" />
-
+<img width="370" height="237" alt="image" src="https://github.com/user-attachments/assets/a41c78cc-3f1b-464c-b8ef-6e59e46df902" />
 
 ## Building
 This is a typical CMake project, so you must have `cmake` installed. The library, `simanneal` is compiled as a shared library. Build it as follows:
