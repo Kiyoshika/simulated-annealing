@@ -33,3 +33,4 @@ This is a typical CMake project, so you must have `cmake` installed. The library
 * `mkdir build && cd build`
 * `cmake -DDEBUG=OFF -DEXAMPLES=ON ..`
     * `EXAMPLES` is a flag of whether or not to compile the [examples](src/examples/)
+* `make`
