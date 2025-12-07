@@ -24,7 +24,7 @@ default_temperature_decay(double T)
 }
 
 enum SA_Status
-Optimizer_init(struct Optimizer* opt,
+SA_Optimizer_init(struct SA_Optimizer* opt,
                double (*temperature_decay)(double T),
                void (*generate_neighbor)(const void* current_state, void* next_state),
                double (*acceptance_proba)(double e_next_state, double e_current_state, double T),
@@ -58,7 +58,7 @@ Optimizer_init(struct Optimizer* opt,
 }
 
 void
-Optimizer_set_verbose(struct Optimizer* opt,
+SA_Optimizer_set_verbose(struct SA_Optimizer* opt,
                       bool verbose,
                       size_t iterations)
 {
@@ -68,7 +68,7 @@ Optimizer_set_verbose(struct Optimizer* opt,
 }
 
 void
-Optimizer_set_max_reheats(struct Optimizer* opt,
+SA_Optimizer_set_max_reheats(struct SA_Optimizer* opt,
                           size_t reheat_count)
 {
     if (!opt) return;
@@ -76,22 +76,22 @@ Optimizer_set_max_reheats(struct Optimizer* opt,
 }
 
 void
-Optimizer_set_convergence_iterations(struct Optimizer* opt,
+SA_Optimizer_set_convergence_iterations(struct SA_Optimizer* opt,
                                      size_t convergence_iterations)
 {
     if (!opt) return;
     opt->convergence_iterations = convergence_iterations;
 }
 
-BestState
-Optimizer_optimize(struct Optimizer* opt,
+SA_BestState
+SA_Optimizer_optimize(struct SA_Optimizer* opt,
                    double initial_T,
                    const void* initial_state,
                    size_t state_size_bytes)
 {
     srand(time(NULL));
 
-    BestState best_state = (BestState){
+    SA_BestState best_state = (SA_BestState){
         .state = NULL,
         .energy = -1.0,
         .converged = false
@@ -121,6 +121,7 @@ reheat:
         opt->generate_neighbor(opt->current_state, next_state);
         double e_current_state = opt->energy(opt->current_state);
         double e_next_state = opt->energy(next_state);
+        bool is_improvement = e_next_state < e_current_state;
         double accept_proba = opt->acceptance_proba(e_next_state, e_current_state, opt->T);
         double rand_unif = (double)rand() / (double)RAND_MAX;
         if (rand_unif < accept_proba)
@@ -130,7 +131,9 @@ reheat:
             best_state.energy = e_next_state;
             iter_no_improvement = 0;
         }
-        else
+
+        // technically this check will 
+        if (!is_improvement)
         {
             iter_no_improvement++;
             if (iter_no_improvement >= opt->convergence_iterations)
@@ -158,7 +161,7 @@ reheat:
 }
 
 void
-Optimizer_free(struct Optimizer* opt)
+SA_Optimizer_free(struct SA_Optimizer* opt)
 {
     if (!opt) return;
     free(opt->current_state);

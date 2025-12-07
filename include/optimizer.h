@@ -11,7 +11,7 @@
 
 #include "status.h"
 
-typedef struct Optimizer {
+typedef struct SA_Optimizer {
     double (*temperature_decay)(double T);
     void (*generate_neighbor)(const void* current_state, void* next_state);
     double (*acceptance_proba)(double e_next_state, double e_current_state, double T);
@@ -22,13 +22,13 @@ typedef struct Optimizer {
     size_t verbose_iterations;
     size_t max_reheat_count;
     size_t convergence_iterations;
-} Optimizer;
+} SA_Optimizer;
 
-typedef struct BestState {
+typedef struct SA_BestState {
     void* state;
     double energy;
     bool converged;
-} BestState;
+} SA_BestState;
 
 /**
  * Initialize optimizer with the initial temperature T and various functions:
@@ -37,14 +37,14 @@ typedef struct BestState {
  * - acceptance_proba: Probability acceptance function given the current state and temperature T. Pass NULL to use the default exp(-(e_new - e_current)/T).
  * - energy: The function to minimize; returns the "energy" of the current state.
  *
- * Optimizer is ran until temperature is <= 0.
+ * SA_Optimizer is ran until temperature is <= 0.
  *
  * Returns:
  * - SA_STATUS_OK on success
  * - SA_STATUS_BAD_ARG if any invalid arguments were passed
  */
 enum SA_Status
-Optimizer_init(struct Optimizer* opt,
+SA_Optimizer_init(struct SA_Optimizer* opt,
                double (*temperature_decay)(double T),
                void (*generate_neighbor)(const void* current_state, void* next_state),
                double (*acceptance_proba)(double e_next_state, double e_current_state, double T),
@@ -54,10 +54,10 @@ Optimizer_init(struct Optimizer* opt,
  * Toggle verbose output of the optimizer.
  * If true, will print the current temperature and energy every [iterations]-th iteration.
  *
- * E.g., Optimizer_set_verbose(opt, true, 100); will print the energy and temperature every 100th iteration.
+ * E.g., SA_Optimizer_set_verbose(opt, true, 100); will print the energy and temperature every 100th iteration.
  */
 void
-Optimizer_set_verbose(struct Optimizer* opt,
+SA_Optimizer_set_verbose(struct SA_Optimizer* opt,
                       bool verbose,
                       size_t iterations);
 
@@ -68,7 +68,7 @@ Optimizer_set_verbose(struct Optimizer* opt,
  * it "converges" or the max reheat count is reached.
  */
 void
-Optimizer_set_max_reheats(struct Optimizer* opt,
+SA_Optimizer_set_max_reheats(struct SA_Optimizer* opt,
                           size_t reheat_count);
 
 /**
@@ -77,7 +77,7 @@ Optimizer_set_max_reheats(struct Optimizer* opt,
  * If the optimizer has converged, it will return early.
  */
 void
-Optimizer_set_convergence_iterations(struct Optimizer* opt,
+SA_Optimizer_set_convergence_iterations(struct SA_Optimizer* opt,
                                      size_t convergence_iterations);
 
 /**
@@ -85,21 +85,21 @@ Optimizer_set_convergence_iterations(struct Optimizer* opt,
  * User provides a valid allocated pointer initial_state of size state_size_bytes.
  *
  * If allocation fails upfront to hold the initial_state, a null state is returned
- * in BestState struct with -1.0 energy.
+ * in SA_BestState struct with -1.0 energy.
  *
  * Returns:
- * - A BestState struct with the current best state found so far with the lowest energy. BestState.converged is true if the energy has not changed in the last 100 iterations; otherwise false.
+ * - A SA_BestState struct with the current best state found so far with the lowest energy. SA_BestState.converged is true if the energy has not changed in the last 100 iterations; otherwise false.
  */
-BestState
-Optimizer_optimize(struct Optimizer* opt,
+SA_BestState
+SA_Optimizer_optimize(struct SA_Optimizer* opt,
                    double initial_T,
                    const void* initial_state,
                    size_t state_size_bytes);
 
 /**
- * Release the resources allocated from the optimizer (only if Optimizer_optimize was called)
+ * Release the resources allocated from the optimizer (only if SA_Optimizer_optimize was called)
  */
 void
-Optimizer_free(struct Optimizer* opt);
+SA_Optimizer_free(struct SA_Optimizer* opt);
 
 #endif

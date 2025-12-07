@@ -50,9 +50,9 @@ int main()
     // random seed for neighbor function
     srand(time(NULL));
 
-    Optimizer opt;
+    SA_Optimizer opt;
 
-    enum SA_Status status = Optimizer_init(
+    enum SA_Status status = SA_Optimizer_init(
         &opt,
         NULL,  // default temperature decay
         &generate_neighbor, 
@@ -66,13 +66,13 @@ int main()
     }
 
     // verbose output, print every 100 iterations
-    Optimizer_set_verbose(&opt, true, 100);
+    SA_Optimizer_set_verbose(&opt, true, 100);
 
     // reheat optimizer up to a maximum of 3 times
-    Optimizer_set_max_reheats(&opt, 3);
+    SA_Optimizer_set_max_reheats(&opt, 3);
 
-    // if no improvement after 100 iterations, mark it converged (returns early)
-    Optimizer_set_convergence_iterations(&opt, 100);
+    // if no improvement after 20 iterations, mark it converged (returns early)
+    SA_Optimizer_set_convergence_iterations(&opt, 20);
 
     // intial state, start at the origin
     Point initial_state = (Point){
@@ -80,12 +80,16 @@ int main()
         .y = 0.0
     };
 
-    BestState best_state = Optimizer_optimize(&opt, 10.0, &initial_state, sizeof(initial_state));
+    SA_BestState best_state = SA_Optimizer_optimize(
+        &opt, 
+        100.0, // initial temperature T
+        &initial_state, 
+        sizeof(initial_state));
 
     const Point* best = best_state.state;
     if (!best)
     {
-        fprintf(stderr, "Optimizer failed to run.\n");
+        fprintf(stderr, "SA_Optimizer failed to run.\n");
         return -1;
     }
 
@@ -95,7 +99,7 @@ int main()
     printf("Converged: %s\n", best_state.converged ? "true" : "false");
 
     // cleanup
-    Optimizer_free(&opt);
+    SA_Optimizer_free(&opt);
     
     return 0;
 }
