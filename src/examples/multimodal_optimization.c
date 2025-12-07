@@ -87,13 +87,19 @@ int main()
     // intial state, start at the origin (there is a local minima here)
     double initial_state = 0.0;
 
-    SA_BestState best_state = SA_Optimizer_optimize(
+    status = SA_Optimizer_optimize(
         &opt, 
         100.0, // initial temperature T
         &initial_state, 
         sizeof(initial_state));
 
-    const double* best = best_state.state;
+    if (status != SA_STATUS_OK)
+    {
+        fprintf(stderr, "SA_Optimizer had an issue during optimization.\n");
+        return -1;
+    }
+
+    const double* best = opt.best_state.state;
     if (!best)
     {
         fprintf(stderr, "SA_Optimizer failed to run.\n");
@@ -101,8 +107,8 @@ int main()
     }
 
     printf("Best X: %f\n", *best);
-    printf("Energy: %f\n", best_state.energy);
-    printf("Converged: %s\n", best_state.converged ? "true" : "false");
+    printf("Energy: %f\n", opt.best_state.energy);
+    printf("Converged: %s\n", opt.best_state.converged ? "true" : "false");
 
     // cleanup
     SA_Optimizer_free(&opt);

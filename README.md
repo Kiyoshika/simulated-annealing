@@ -5,7 +5,7 @@ This implementation allows you to provide a temperature decay (or default), acce
 
 This implementation also supports a "reheating" mechanism where, if the optimizer does not converge after reaching ~0 temperature, it will reset the temperature back to the initial temperature up to a specified number of times.
 
-I use minimal heap allocations; the only heap usage is to allocate two re-used buffers for the current state and proposed next state equal to the size of the given user data.
+I use minimal heap allocations; the only heap usage is to allocate three re-usable buffers for the current state, best state and proposed next state each equal to the size of the given user data.
 
 More information/documentation is provided in the [header file](include/optimizer.h).
 

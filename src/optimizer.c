@@ -54,6 +54,12 @@ SA_Optimizer_init(struct SA_Optimizer* opt,
     if (!energy) return SA_STATUS_BAD_ARG;
     opt->energy = energy;
 
+    opt->best_state = (SA_BestState){
+        .state = NULL,
+        .energy = -1.0,
+        .converged = false
+    };
+
     return SA_STATUS_OK;
 }
 
@@ -83,7 +89,7 @@ SA_Optimizer_set_convergence_iterations(struct SA_Optimizer* opt,
     opt->convergence_iterations = convergence_iterations;
 }
 
-SA_BestState
+enum SA_Status
 SA_Optimizer_optimize(struct SA_Optimizer* opt,
                    double initial_T,
                    const void* initial_state,
@@ -91,24 +97,16 @@ SA_Optimizer_optimize(struct SA_Optimizer* opt,
 {
     srand(time(NULL));
 
-    SA_BestState best_state = (SA_BestState){
-        .state = NULL,
-        .energy = -1.0,
-        .converged = false
-    };
-
-    if (!opt || !initial_state || state_size_bytes == 0)
-    {
-        return best_state;
-    }
+    if (!opt || !initial_state || state_size_bytes == 0) return SA_STATUS_BAD_ARG;
 
     opt->current_state = calloc(1, state_size_bytes);
+    opt->best_state.state = calloc(1, state_size_bytes);
     void* next_state = calloc(1, state_size_bytes);
-    if (!opt->current_state || !next_state) return best_state;
+    if (!opt->current_state || !next_state || !opt->best_state.state) return SA_STATUS_NO_MEM;
 
     memcpy(opt->current_state, initial_state, state_size_bytes);
-    best_state.state = opt->current_state;
-    best_state.energy = opt->energy(initial_state);
+    memcpy(opt->best_state.state, initial_state, state_size_bytes);
+    opt->best_state.energy = opt->energy(initial_state);
 
     size_t total_reheats = 0;
 
@@ -127,8 +125,6 @@ reheat:
         if (rand_unif < accept_proba)
         {
             memcpy(opt->current_state, next_state, state_size_bytes);
-            //best_state.state = opt->current_state;
-            //best_state.energy = e_next_state;
             iter_no_improvement = 0;
         }
 
@@ -137,34 +133,31 @@ reheat:
             iter_no_improvement++;
             if (iter_no_improvement >= opt->convergence_iterations)
             {
-                best_state.converged = true;
+                opt->best_state.converged = true;
                 free(next_state);
-                return best_state;
+                return SA_STATUS_OK;
             }
         }
-        // only update best state if next state's energy is less.
-        // we don't update it in the rand_unif check because
-        // we would end up saving the non-optimal choices as the "best" state
-        else
+        else if (is_improvement && e_next_state < opt->best_state.energy)
         {
-           best_state.state = opt->current_state;
-           best_state.energy = e_next_state;
+            memcpy(opt->best_state.state, next_state, state_size_bytes);
+            opt->best_state.energy = e_next_state;
         }
 
         if (opt->verbose && total_iterations % opt->verbose_iterations == 0)
-            printf("Temperature: %f, Energy: %f\n", opt->T, best_state.energy);
+            printf("Temperature: %f, Energy: %f\n", opt->T, opt->best_state.energy);
 
         opt->T = opt->temperature_decay(opt->T);
     }
 
-    if (!best_state.converged && total_reheats < opt->max_reheat_count)
+    if (!opt->best_state.converged && total_reheats < opt->max_reheat_count)
     {
         total_reheats++;
         goto reheat;
     }
 
     free(next_state);
-    return best_state;
+    return SA_STATUS_OK;
 }
 
 void
@@ -173,4 +166,6 @@ SA_Optimizer_free(struct SA_Optimizer* opt)
     if (!opt) return;
     free(opt->current_state);
     opt->current_state = NULL;
+    free(opt->best_state.state);
+    opt->best_state.state = NULL;
 }

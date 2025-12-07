@@ -11,6 +11,12 @@
 
 #include "status.h"
 
+typedef struct SA_BestState {
+    void* state;
+    double energy;
+    bool converged;
+} SA_BestState;
+
 typedef struct SA_Optimizer {
     double (*temperature_decay)(double T);
     void (*generate_neighbor)(const void* current_state, void* next_state);
@@ -22,13 +28,9 @@ typedef struct SA_Optimizer {
     size_t verbose_iterations;
     size_t max_reheat_count;
     size_t convergence_iterations;
+    SA_BestState best_state;
 } SA_Optimizer;
 
-typedef struct SA_BestState {
-    void* state;
-    double energy;
-    bool converged;
-} SA_BestState;
 
 /**
  * Initialize optimizer with the initial temperature T and various functions:
@@ -90,7 +92,7 @@ SA_Optimizer_set_convergence_iterations(struct SA_Optimizer* opt,
  * Returns:
  * - A SA_BestState struct with the current best state found so far with the lowest energy. SA_BestState.converged is true if the energy has not changed in the last 100 iterations; otherwise false.
  */
-SA_BestState
+enum SA_Status
 SA_Optimizer_optimize(struct SA_Optimizer* opt,
                    double initial_T,
                    const void* initial_state,
