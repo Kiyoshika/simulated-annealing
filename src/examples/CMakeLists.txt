@@ -1,3 +1,7 @@
 add_executable(multivariate_optimization multivariate_optimization.c)
 target_link_libraries(multivariate_optimization simanneal)
 target_include_directories(multivariate_optimization PUBLIC ${CMAKE_SOURCE_DIR}/include)
+
+add_executable(multimodal_optimization multimodal_optimization.c)
+target_link_libraries(multimodal_optimization simanneal)
+target_include_directories(multimodal_optimization PUBLIC ${CMAKE_SOURCE_DIR}/include)
