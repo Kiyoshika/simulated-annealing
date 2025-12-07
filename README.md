@@ -12,7 +12,10 @@ More information/documentation is provided in the [header file](include/optimize
 ## Example Usage
 Examples are provided in the [examples](src/examples/) directory to see how to use it + some additional parameters to play with.
 
-Below is a screenshot from the example for multivariate optimization, finding the minimum of an elliptoid surface:
+Below is a screenshot from the example for multivariate optimization, finding the minimum of an elliptoid surface (the true minimum is `(X=3, Y=-5)`):
+
+<img width="372" height="197" alt="image" src="https://github.com/user-attachments/assets/51c9771e-4884-41de-bdd8-924ec7f0b754" />
+
 
 ## Building
 This is a typical CMake project, so you must have `cmake` installed. The library, `simanneal` is compiled as a shared library. Build it as follows:
