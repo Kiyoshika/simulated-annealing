@@ -41,8 +41,8 @@ void generate_neighbor(const void* current_state, void* next_state)
     const Point* current = (const Point*)current_state;
     Point* next = (Point*)next_state;
 
-    next->x = current->x + (rand_unif() / 10.0);
-    next->y = current->y + (rand_unif() / 10.0);
+    next->x = current->x + (rand_unif() / 50.0);
+    next->y = current->y + (rand_unif() / 50.0);
 }
 
 int main()

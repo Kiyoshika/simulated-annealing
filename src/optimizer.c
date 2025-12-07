@@ -15,12 +15,12 @@ default_acceptance_proba(double e_next_state,
 }
 
 /**
- * The default temperature decay function, which decays the temperature by 5%
+ * The default temperature decay function, which decays the temperature by 1%
  */
 static double
 default_temperature_decay(double T)
 {
-    return T/1.05;
+    return T/1.01;
 }
 
 enum SA_Status
@@ -142,9 +142,9 @@ reheat:
                 return best_state;
             }
         }
-        // only update best state if next state's energy is less
+        // only update best state if next state's energy is less.
         // we don't update it in the rand_unif check because
-        // we save the non-optimal choices as the "best" state
+        // we would end up saving the non-optimal choices as the "best" state
         else
         {
            best_state.state = opt->current_state;
