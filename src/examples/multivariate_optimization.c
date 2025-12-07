@@ -35,14 +35,14 @@ double energy(const void* state)
     return (((p->x - 3.0) * (p->x - 3.0)) / 25.0) + (((p->y + 5.0) * (p->y + 5.0)) / 49.0);
 }
 
-// generate neighbor by moving X and Y in a small random direction
+// generate neighbor by moving X and Y in a very small random direction
 void generate_neighbor(const void* current_state, void* next_state)
 {
     const Point* current = (const Point*)current_state;
     Point* next = (Point*)next_state;
 
-    next->x = current->x + rand_unif();
-    next->y = current->y + rand_unif();
+    next->x = current->x + (rand_unif() / 10.0);
+    next->y = current->y + (rand_unif() / 10.0);
 }
 
 int main()
@@ -54,20 +54,25 @@ int main()
 
     enum SA_Status status = Optimizer_init(
         &opt,
-        10.0,  // initial temperature
         NULL,  // default temperature decay
         &generate_neighbor, 
         NULL,  // default acceptance probability function
         &energy);
 
-    switch (status)
+    if (status != SA_STATUS_OK)
     {
-        case SA_STATUS_BAD_ARG:
-            fprintf(stderr, "Passed bad argument to optimizer.\n");
-            return -1;
-        case SA_STATUS_OK:
-            break;
+        fprintf(stderr, "Something failed when initializing optimizer.\n");
+        return -1;
     }
+
+    // verbose output, print every 100 iterations
+    Optimizer_set_verbose(&opt, true, 100);
+
+    // reheat optimizer up to a maximum of 3 times
+    Optimizer_set_max_reheats(&opt, 3);
+
+    // if no improvement after 100 iterations, mark it converged (returns early)
+    Optimizer_set_convergence_iterations(&opt, 100);
 
     // intial state, start at the origin
     Point initial_state = (Point){
@@ -75,7 +80,7 @@ int main()
         .y = 0.0
     };
 
-    BestState best_state = Optimizer_optimize(&opt, &initial_state, sizeof(initial_state));
+    BestState best_state = Optimizer_optimize(&opt, 10.0, &initial_state, sizeof(initial_state));
 
     const Point* best = best_state.state;
     if (!best)

@@ -25,7 +25,6 @@ default_temperature_decay(double T)
 
 enum SA_Status
 Optimizer_init(struct Optimizer* opt,
-               double initial_T,
                double (*temperature_decay)(double T),
                void (*generate_neighbor)(const void* current_state, void* next_state),
                double (*acceptance_proba)(double e_next_state, double e_current_state, double T),
@@ -33,8 +32,11 @@ Optimizer_init(struct Optimizer* opt,
 {
     if (!opt) return SA_STATUS_BAD_ARG;
 
-    if (initial_T < 0.0 || fabs(initial_T - 0.0) < 1e-6) return SA_STATUS_BAD_ARG;
-    opt->T = initial_T;
+    // default settings
+    opt->verbose = false;
+    opt->verbose_iterations = 0;
+    opt->max_reheat_count = 0;
+    opt->convergence_iterations = 100;
 
     if (!temperature_decay)
         opt->temperature_decay = &default_temperature_decay;
@@ -55,8 +57,35 @@ Optimizer_init(struct Optimizer* opt,
     return SA_STATUS_OK;
 }
 
+void
+Optimizer_set_verbose(struct Optimizer* opt,
+                      bool verbose,
+                      size_t iterations)
+{
+   if (!opt) return;
+   opt->verbose = verbose;
+   opt->verbose_iterations = iterations;
+}
+
+void
+Optimizer_set_max_reheats(struct Optimizer* opt,
+                          size_t reheat_count)
+{
+    if (!opt) return;
+    opt->max_reheat_count = reheat_count;
+}
+
+void
+Optimizer_set_convergence_iterations(struct Optimizer* opt,
+                                     size_t convergence_iterations)
+{
+    if (!opt) return;
+    opt->convergence_iterations = convergence_iterations;
+}
+
 BestState
 Optimizer_optimize(struct Optimizer* opt,
+                   double initial_T,
                    const void* initial_state,
                    size_t state_size_bytes)
 {
@@ -67,7 +96,12 @@ Optimizer_optimize(struct Optimizer* opt,
         .energy = -1.0,
         .converged = false
     };
-    
+
+    if (!opt || !initial_state || state_size_bytes == 0)
+    {
+        return best_state;
+    }
+
     opt->current_state = calloc(1, state_size_bytes);
     void* next_state = calloc(1, state_size_bytes);
     if (!opt->current_state || !next_state) return best_state;
@@ -76,6 +110,10 @@ Optimizer_optimize(struct Optimizer* opt,
     best_state.state = opt->current_state;
     best_state.energy = opt->energy(initial_state);
 
+    size_t total_reheats = 0;
+
+reheat:
+    opt->T = initial_T;
     size_t iter_no_improvement = 0;
     size_t total_iterations = 0;
     while (opt->T > 1e-6)
@@ -94,15 +132,25 @@ Optimizer_optimize(struct Optimizer* opt,
         }
         else
         {
-            // early stop here? If so, be sure to free(next_state) prior to exit
             iter_no_improvement++;
-            if (iter_no_improvement >= 100)
+            if (iter_no_improvement >= opt->convergence_iterations)
+            {
                 best_state.converged = true;
+                free(next_state);
+                return best_state;
+            }
         }
-        opt->T = opt->temperature_decay(opt->T);
 
-        if (++total_iterations % 10 == 0)
+        if (opt->verbose && total_iterations % opt->verbose_iterations == 0)
             printf("Temperature: %f, Energy: %f\n", opt->T, best_state.energy);
+
+        opt->T = opt->temperature_decay(opt->T);
+    }
+
+    if (!best_state.converged && total_reheats < opt->max_reheat_count)
+    {
+        total_reheats++;
+        goto reheat;
     }
 
     free(next_state);
