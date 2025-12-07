@@ -127,12 +127,11 @@ reheat:
         if (rand_unif < accept_proba)
         {
             memcpy(opt->current_state, next_state, state_size_bytes);
-            best_state.state = opt->current_state;
-            best_state.energy = e_next_state;
+            //best_state.state = opt->current_state;
+            //best_state.energy = e_next_state;
             iter_no_improvement = 0;
         }
 
-        // technically this check will 
         if (!is_improvement)
         {
             iter_no_improvement++;
@@ -142,6 +141,14 @@ reheat:
                 free(next_state);
                 return best_state;
             }
+        }
+        // only update best state if next state's energy is less
+        // we don't update it in the rand_unif check because
+        // we save the non-optimal choices as the "best" state
+        else
+        {
+           best_state.state = opt->current_state;
+           best_state.energy = e_next_state;
         }
 
         if (opt->verbose && total_iterations % opt->verbose_iterations == 0)
