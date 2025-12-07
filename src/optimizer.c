@@ -1,0 +1,118 @@
+#include "optimizer.h"
+
+/**
+ * The default acceptance probability function, exp(-(e' - e)/T)
+ */
+static double
+default_acceptance_proba(double e_next_state,
+                         double e_current_state,
+                         double T)
+{
+    if (e_next_state < e_current_state)
+        return 1.0;
+
+    return exp((-1.0 * (e_next_state - e_current_state)) / T);
+}
+
+/**
+ * The default temperature decay function, which decays the temperature by 5%
+ */
+static double
+default_temperature_decay(double T)
+{
+    return T/1.05;
+}
+
+enum SA_Status
+Optimizer_init(struct Optimizer* opt,
+               double initial_T,
+               double (*temperature_decay)(double T),
+               void (*generate_neighbor)(const void* current_state, void* next_state),
+               double (*acceptance_proba)(double e_next_state, double e_current_state, double T),
+               double (*energy)(const void* state))
+{
+    if (!opt) return SA_STATUS_BAD_ARG;
+
+    if (initial_T < 0.0 || fabs(initial_T - 0.0) < 1e-6) return SA_STATUS_BAD_ARG;
+    opt->T = initial_T;
+
+    if (!temperature_decay)
+        opt->temperature_decay = &default_temperature_decay;
+    else
+        opt->temperature_decay = temperature_decay;
+
+    if (!generate_neighbor) return SA_STATUS_BAD_ARG;
+    opt->generate_neighbor = generate_neighbor;
+
+    if (!acceptance_proba)
+        opt->acceptance_proba = &default_acceptance_proba;
+    else
+        opt->acceptance_proba = acceptance_proba;
+
+    if (!energy) return SA_STATUS_BAD_ARG;
+    opt->energy = energy;
+
+    return SA_STATUS_OK;
+}
+
+BestState
+Optimizer_optimize(struct Optimizer* opt,
+                   const void* initial_state,
+                   size_t state_size_bytes)
+{
+    srand(time(NULL));
+
+    BestState best_state = (BestState){
+        .state = NULL,
+        .energy = -1.0,
+        .converged = false
+    };
+    
+    opt->current_state = calloc(1, state_size_bytes);
+    void* next_state = calloc(1, state_size_bytes);
+    if (!opt->current_state || !next_state) return best_state;
+
+    memcpy(opt->current_state, initial_state, state_size_bytes);
+    best_state.state = opt->current_state;
+    best_state.energy = opt->energy(initial_state);
+
+    size_t iter_no_improvement = 0;
+    size_t total_iterations = 0;
+    while (opt->T > 1e-6)
+    {
+        opt->generate_neighbor(opt->current_state, next_state);
+        double e_current_state = opt->energy(opt->current_state);
+        double e_next_state = opt->energy(next_state);
+        double accept_proba = opt->acceptance_proba(e_next_state, e_current_state, opt->T);
+        double rand_unif = (double)rand() / (double)RAND_MAX;
+        if (rand_unif < accept_proba)
+        {
+            memcpy(opt->current_state, next_state, state_size_bytes);
+            best_state.state = opt->current_state;
+            best_state.energy = e_next_state;
+            iter_no_improvement = 0;
+        }
+        else
+        {
+            // early stop here? If so, be sure to free(next_state) prior to exit
+            iter_no_improvement++;
+            if (iter_no_improvement >= 100)
+                best_state.converged = true;
+        }
+        opt->T = opt->temperature_decay(opt->T);
+
+        if (++total_iterations % 10 == 0)
+            printf("Temperature: %f, Energy: %f\n", opt->T, best_state.energy);
+    }
+
+    free(next_state);
+    return best_state;
+}
+
+void
+Optimizer_free(struct Optimizer* opt)
+{
+    if (!opt) return;
+    free(opt->current_state);
+    opt->current_state = NULL;
+}
